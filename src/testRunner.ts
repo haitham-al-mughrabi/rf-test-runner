@@ -1,10 +1,20 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
-import * as path from 'path';
+
+export interface TestSelection {
+    type: 'test' | 'suite' | 'module';
+    name: string;        // Display name
+    path: string;        // File/folder path (for suite/module)
+    testName?: string;   // Test case name (for individual tests)
+}
 
 export interface TestConfig {
+    // Test selection
+    selections: TestSelection[];
+    customTestPath: string;
+    testCaseNames: string[];  // Individual test case names to run with --test
+
     // Common options
-    testPaths: string;
     captchaSolver: boolean;
     windowFull: boolean;
     windowMaximized: boolean;
@@ -38,7 +48,9 @@ export interface TestConfig {
 }
 
 export const defaultConfig: TestConfig = {
-    testPaths: 'Tests',
+    selections: [],
+    customTestPath: '',
+    testCaseNames: [],
     captchaSolver: true,
     windowFull: false,
     windowMaximized: false,
@@ -82,80 +94,104 @@ export class TestRunner {
         return this._isRunning;
     }
 
-    buildDockerCommand(config: TestConfig): string[] {
-        const args: string[] = [];
+    /**
+     * Determines the test path based on selections
+     */
+    private getTestPath(config: TestConfig): string {
+        // If custom path is provided, use it directly
+        if (config.customTestPath.trim()) {
+            return config.customTestPath.trim();
+        }
 
-        if (config.headless) {args.push('--headless');}
-        if (config.maximizeBrowser) {args.push('--maximize-browser');}
-        if (config.fullWidthViewport) {args.push('--full-width-viewport');}
-        if (config.keepVncOpen) {args.push('--keep-vnc-open');}
+        // If no selections, run all tests
+        if (config.selections.length === 0) {
+            return 'Tests';
+        }
 
-        args.push('--captcha-solver', config.captchaSolver.toString());
-        args.push('--window-full', config.windowFull.toString());
-        args.push('--window-maximized', config.windowMaximized.toString());
-        args.push('--run-offline', config.runOffline.toString());
-        args.push('--dev-tools', config.devTools.toString());
-        args.push('--chrome-security-sandbox', config.chromeSecuritySandbox.toString());
-        args.push('--playwright-tracing', config.playwrightTracing.toString());
-        args.push('--environment', config.developmentEnvironment);
-        args.push('--execution-env', config.executionEnv);
-        args.push('--omit-content', config.omitContent.toString());
-        args.push('--record-video', config.recordVideo.toString());
-        args.push('--enable-har', config.enableHar.toString());
-        args.push('--window-height', config.windowHeight.toString());
-        args.push('--window-width', config.windowWidth.toString());
-        args.push('--context-type', config.contextType);
-        args.push('--log-level', config.logLevel);
-        args.push('--report-title', `"${config.reportTitle}"`);
-        args.push('--auto-close-browser', config.autoCloseBrowser.toString());
-
-        if (config.customVariables.trim()) {
-            const vars = config.customVariables.split('\n').filter(v => v.trim());
-            for (const v of vars) {
-                args.push('-v', v.trim());
+        // Collect unique paths from selections
+        const paths: string[] = [];
+        for (const sel of config.selections) {
+            if (sel.type === 'suite' || sel.type === 'module') {
+                if (!paths.includes(sel.path)) {
+                    paths.push(sel.path);
+                }
+            } else if (sel.type === 'test') {
+                // For individual tests, we need the suite path
+                if (!paths.includes(sel.path)) {
+                    paths.push(sel.path);
+                }
             }
         }
 
-        args.push(config.testPaths);
-
-        return args;
+        return paths.length > 0 ? paths.join(' ') : 'Tests';
     }
 
-    buildLocalCommand(config: TestConfig): string[] {
-        const args: string[] = [];
+    /**
+     * Build the complete shell command as a single string
+     */
+    buildCommand(mode: 'docker' | 'local', config: TestConfig): string {
+        const parts: string[] = [];
+        const scriptName = mode === 'docker' ? './run_tests.sh' : './run_tests_local.sh';
 
-        if (config.headless) {args.push('--headless');}
-        if (config.installDependencies) {args.push('--install-dependencies');}
-        if (config.checkDeps) {args.push('--check-deps');}
+        // Script-level flags (no values)
+        if (config.headless) {
+            parts.push('--headless');
+        }
 
-        args.push('--captcha-solver', config.captchaSolver.toString());
-        args.push('--window-full', config.windowFull.toString());
-        args.push('--window-maximized', config.windowMaximized.toString());
-        args.push('--run-offline', config.runOffline.toString());
-        args.push('--dev-tools', config.devTools.toString());
-        args.push('--chrome-security-sandbox', config.chromeSecuritySandbox.toString());
-        args.push('--playwright-tracing', config.playwrightTracing.toString());
-        args.push('--environment', config.developmentEnvironment);
-        args.push('--execution-env', config.executionEnv);
-        args.push('--omit-content', config.omitContent.toString());
-        args.push('--record-video', config.recordVideo.toString());
-        args.push('--enable-har', config.enableHar.toString());
-        args.push('--window-height', config.windowHeight.toString());
-        args.push('--window-width', config.windowWidth.toString());
-        args.push('--context-type', config.contextType);
-        args.push('--log-level', config.logLevel);
-        args.push('--report-title', `"${config.reportTitle}"`);
+        if (mode === 'docker') {
+            if (config.maximizeBrowser) { parts.push('--maximize-browser'); }
+            if (config.fullWidthViewport) { parts.push('--full-width-viewport'); }
+            if (config.keepVncOpen) { parts.push('--keep-vnc-open'); }
+        }
 
+        if (mode === 'local') {
+            if (config.installDependencies) { parts.push('--install-dependencies'); }
+            if (config.checkDeps) { parts.push('--check-deps'); }
+        }
+
+        // Options with values
+        parts.push(`--captcha-solver ${config.captchaSolver}`);
+        parts.push(`--window-full ${config.windowFull}`);
+        parts.push(`--window-maximized ${config.windowMaximized}`);
+        parts.push(`--run-offline ${config.runOffline}`);
+        parts.push(`--dev-tools ${config.devTools}`);
+        parts.push(`--chrome-security-sandbox ${config.chromeSecuritySandbox}`);
+        parts.push(`--playwright-tracing ${config.playwrightTracing}`);
+        parts.push(`--environment ${config.developmentEnvironment}`);
+        parts.push(`--execution-env ${config.executionEnv}`);
+        parts.push(`--omit-content ${config.omitContent}`);
+        parts.push(`--record-video ${config.recordVideo}`);
+        parts.push(`--enable-har ${config.enableHar}`);
+        parts.push(`--window-height ${config.windowHeight}`);
+        parts.push(`--window-width ${config.windowWidth}`);
+        parts.push(`--context-type ${config.contextType}`);
+        parts.push(`--log-level ${config.logLevel}`);
+        parts.push(`--report-title "${config.reportTitle}"`);
+
+        if (mode === 'docker') {
+            parts.push(`--auto-close-browser ${config.autoCloseBrowser}`);
+        }
+
+        // Custom variables (passed to script which passes to robot)
         if (config.customVariables.trim()) {
             const vars = config.customVariables.split('\n').filter(v => v.trim());
             for (const v of vars) {
-                args.push('-v', v.trim());
+                parts.push(`-v "${v.trim()}"`);
             }
         }
 
-        args.push(config.testPaths);
+        // Individual test case names - use --test option to filter specific tests
+        if (config.testCaseNames.length > 0) {
+            for (const testName of config.testCaseNames) {
+                parts.push(`--test "${testName}"`);
+            }
+        }
 
-        return args;
+        // Add test path at the end
+        const testPath = this.getTestPath(config);
+        parts.push(testPath);
+
+        return `${scriptName} ${parts.join(' ')}`;
     }
 
     async run(mode: 'docker' | 'local', config: TestConfig): Promise<void> {
@@ -164,25 +200,25 @@ export class TestRunner {
             return;
         }
 
-        const scriptName = mode === 'docker' ? 'run_tests.sh' : 'run_tests_local.sh';
-        const scriptPath = path.join(this.workspaceRoot, scriptName);
-        const args = mode === 'docker'
-            ? this.buildDockerCommand(config)
-            : this.buildLocalCommand(config);
+        const command = this.buildCommand(mode, config);
 
         this.outputChannel.show();
         this.outputChannel.clear();
         this.outputChannel.appendLine(`Starting ${mode} test execution...`);
-        this.outputChannel.appendLine(`Command: bash ${scriptPath} ${args.join(' ')}`);
-        this.outputChannel.appendLine('---');
+        this.outputChannel.appendLine(`Working directory: ${this.workspaceRoot}`);
+        this.outputChannel.appendLine(`Command: ${command}`);
+        this.outputChannel.appendLine('');
+        this.outputChannel.appendLine('='.repeat(70));
+        this.outputChannel.appendLine('');
 
         try {
             this._isRunning = true;
 
-            this.currentProcess = cp.spawn('bash', [scriptPath, ...args], {
+            // Use shell execution directly for proper argument handling
+            this.currentProcess = cp.spawn(command, [], {
                 cwd: this.workspaceRoot,
-                shell: true,
-                detached: true
+                shell: '/bin/bash',
+                env: { ...process.env, FORCE_COLOR: '1' }
             });
 
             this.currentProcess.stdout?.on('data', (data) => {
@@ -195,8 +231,9 @@ export class TestRunner {
 
             this.currentProcess.on('close', (code) => {
                 this._isRunning = false;
-                this.outputChannel.appendLine('---');
-                this.outputChannel.appendLine(`Test execution finished with code ${code}`);
+                this.outputChannel.appendLine('');
+                this.outputChannel.appendLine('='.repeat(70));
+                this.outputChannel.appendLine(`Test execution finished with exit code: ${code}`);
 
                 if (code === 0) {
                     vscode.window.showInformationMessage('Tests completed successfully!');
@@ -221,11 +258,11 @@ export class TestRunner {
     stop(): void {
         if (this.currentProcess && this._isRunning) {
             try {
+                // Kill the process tree
                 if (this.currentProcess.pid) {
-                    process.kill(-this.currentProcess.pid, 'SIGTERM');
-                } else {
-                    this.currentProcess.kill('SIGTERM');
+                    cp.exec(`pkill -P ${this.currentProcess.pid}`);
                 }
+                this.currentProcess.kill('SIGTERM');
                 this._isRunning = false;
                 this.outputChannel.appendLine('\n--- Test execution stopped by user ---');
                 vscode.window.showInformationMessage('Test execution stopped');

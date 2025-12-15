@@ -2,12 +2,13 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ResultsServiceManager } from './resultsService';
-import { TestRunner, TestConfig, defaultConfig } from './testRunner';
+import { TestRunner, TestConfig, TestSelection, defaultConfig } from './testRunner';
 
 interface TestItem {
     name: string;
     path: string;
     type: 'test' | 'suite' | 'module';
+    testName?: string;  // For individual test cases
     children?: TestItem[];
 }
 
@@ -157,12 +158,22 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
                             children
                         });
                     }
-                } else if (entry.name.endsWith('.robot')) {
-                    items.push({
+                } else if (entry.name.endsWith('.robot') && !entry.name.startsWith('__init__')) {
+                    // Skip __init__.robot files (suite setup files)
+                    // Parse robot file to extract test cases
+                    const testCases = this.parseRobotFile(fullPath);
+                    const suiteItem: TestItem = {
                         name: entry.name.replace('.robot', ''),
                         path: itemRelativePath,
-                        type: 'suite'
-                    });
+                        type: 'suite',
+                        children: testCases.length > 0 ? testCases.map(tc => ({
+                            name: tc,
+                            path: itemRelativePath,
+                            type: 'test' as const,
+                            testName: tc
+                        })) : undefined
+                    };
+                    items.push(suiteItem);
                 }
             }
         } catch (error) {
@@ -170,6 +181,46 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
         }
 
         return items;
+    }
+
+    /**
+     * Parse a robot file to extract test case names
+     */
+    private parseRobotFile(filePath: string): string[] {
+        const testCases: string[] = [];
+
+        try {
+            const content = fs.readFileSync(filePath, 'utf-8');
+            const lines = content.split('\n');
+
+            let inTestCasesSection = false;
+
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+
+                // Check for section headers
+                if (trimmedLine.startsWith('***')) {
+                    const sectionMatch = trimmedLine.match(/\*{3}\s*(.*?)\s*\*{3}/i);
+                    if (sectionMatch) {
+                        const sectionName = sectionMatch[1].toLowerCase();
+                        inTestCasesSection = sectionName.includes('test case') || sectionName.includes('task');
+                    }
+                    continue;
+                }
+
+                // If we're in test cases section and line doesn't start with space/tab, it's a test name
+                if (inTestCasesSection && trimmedLine && !line.startsWith(' ') && !line.startsWith('\t')) {
+                    // Skip comments and empty lines
+                    if (!trimmedLine.startsWith('#') && !trimmedLine.startsWith('[')) {
+                        testCases.push(trimmedLine);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error parsing robot file:', error);
+        }
+
+        return testCases;
     }
 
     private _getHtmlForWebview(_webview: vscode.Webview) {
@@ -183,11 +234,7 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
         :root {
             --vscode-font-family: var(--vscode-editor-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
         }
-
-        * {
-            box-sizing: border-box;
-        }
-
+        * { box-sizing: border-box; }
         body {
             font-family: var(--vscode-font-family);
             font-size: 13px;
@@ -196,18 +243,13 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
             color: var(--vscode-foreground);
             background: var(--vscode-sideBar-background);
         }
-
-        .container {
-            padding: 10px;
-        }
-
+        .container { padding: 10px; }
         .section {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             border: 1px solid var(--vscode-panel-border);
             border-radius: 4px;
             overflow: hidden;
         }
-
         .section-header {
             background: var(--vscode-sideBarSectionHeader-background);
             padding: 8px 12px;
@@ -218,43 +260,19 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
             align-items: center;
             user-select: none;
         }
-
-        .section-header:hover {
-            background: var(--vscode-list-hoverBackground);
-        }
-
-        .section-header .toggle {
-            font-size: 10px;
-        }
-
-        .section-content {
-            padding: 12px;
-            display: block;
-        }
-
-        .section-content.collapsed {
-            display: none;
-        }
-
-        .form-group {
-            margin-bottom: 12px;
-        }
-
-        .form-group:last-child {
-            margin-bottom: 0;
-        }
-
+        .section-header:hover { background: var(--vscode-list-hoverBackground); }
+        .section-header .toggle { font-size: 10px; }
+        .section-content { padding: 12px; display: block; }
+        .section-content.collapsed { display: none; }
+        .form-group { margin-bottom: 12px; }
+        .form-group:last-child { margin-bottom: 0; }
         label {
             display: block;
             margin-bottom: 4px;
             font-weight: 500;
             color: var(--vscode-descriptionForeground);
         }
-
-        input[type="text"],
-        input[type="number"],
-        select,
-        textarea {
+        input[type="text"], input[type="number"], select, textarea {
             width: 100%;
             padding: 6px 8px;
             border: 1px solid var(--vscode-input-border);
@@ -263,25 +281,16 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
             border-radius: 3px;
             font-size: 12px;
         }
-
-        input[type="text"]:focus,
-        input[type="number"]:focus,
-        select:focus,
-        textarea:focus {
+        input:focus, select:focus, textarea:focus {
             outline: 1px solid var(--vscode-focusBorder);
             border-color: var(--vscode-focusBorder);
         }
-
         textarea {
             min-height: 60px;
             resize: vertical;
             font-family: var(--vscode-editor-font-family);
         }
-
-        select {
-            cursor: pointer;
-        }
-
+        select { cursor: pointer; }
         .btn {
             padding: 8px 14px;
             border: none;
@@ -291,46 +300,14 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
             font-weight: 500;
             transition: opacity 0.2s;
         }
-
-        .btn:hover {
-            opacity: 0.9;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-primary {
-            background: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-        }
-
-        .btn-secondary {
-            background: var(--vscode-button-secondaryBackground);
-            color: var(--vscode-button-secondaryForeground);
-        }
-
-        .btn-danger {
-            background: #d32f2f;
-            color: white;
-        }
-
-        .btn-success {
-            background: #388e3c;
-            color: white;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .btn-group .btn {
-            flex: 1;
-        }
-
+        .btn:hover { opacity: 0.9; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+        .btn-secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
+        .btn-danger { background: #d32f2f; color: white; }
+        .btn-success { background: #388e3c; color: white; }
+        .btn-group { display: flex; gap: 8px; margin-top: 10px; }
+        .btn-group .btn { flex: 1; }
         .status-indicator {
             display: inline-flex;
             align-items: center;
@@ -340,93 +317,56 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
             font-size: 11px;
             margin-bottom: 10px;
         }
-
-        .status-indicator.running {
-            background: rgba(56, 142, 60, 0.2);
-            color: #81c784;
-        }
-
-        .status-indicator.stopped {
-            background: rgba(211, 47, 47, 0.2);
-            color: #e57373;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-
-        .status-dot.running {
-            background: #81c784;
-            animation: pulse 1.5s infinite;
-        }
-
-        .status-dot.stopped {
-            background: #e57373;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
+        .status-indicator.running { background: rgba(56, 142, 60, 0.2); color: #81c784; }
+        .status-indicator.stopped { background: rgba(211, 47, 47, 0.2); color: #e57373; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .status-dot.running { background: #81c784; animation: pulse 1.5s infinite; }
+        .status-dot.stopped { background: #e57373; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .test-tree {
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
             border: 1px solid var(--vscode-input-border);
             border-radius: 3px;
             padding: 8px;
             background: var(--vscode-input-background);
         }
-
         .test-item {
-            padding: 4px 0;
+            padding: 3px 0;
             display: flex;
             align-items: center;
             gap: 6px;
         }
-
-        .test-item input[type="checkbox"] {
-            margin: 0;
-            cursor: pointer;
-        }
-
+        .test-item input[type="checkbox"] { margin: 0; cursor: pointer; }
         .test-item label {
             margin: 0;
             cursor: pointer;
             display: inline;
             font-weight: normal;
             color: var(--vscode-foreground);
+            flex: 1;
         }
-
-        .test-item.module > label {
-            font-weight: 600;
-            color: var(--vscode-textLink-foreground);
-        }
-
-        .test-item.suite > label {
-            color: var(--vscode-symbolIcon-fileForeground);
-        }
-
+        .test-item.module > label { font-weight: 600; color: var(--vscode-textLink-foreground); }
+        .test-item.suite > label { color: var(--vscode-symbolIcon-fileForeground); font-weight: 500; }
+        .test-item.test > label { color: var(--vscode-foreground); font-size: 12px; }
         .test-children {
-            margin-left: 20px;
+            margin-left: 18px;
             border-left: 1px solid var(--vscode-panel-border);
             padding-left: 8px;
         }
-
-        .inline-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+        .test-children.collapsed { display: none; }
+        .expander {
+            cursor: pointer;
+            font-size: 10px;
+            width: 14px;
+            text-align: center;
+            color: var(--vscode-descriptionForeground);
+            user-select: none;
         }
-
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid var(--vscode-panel-border);
-            margin-bottom: 12px;
-        }
-
+        .expander:hover { color: var(--vscode-foreground); }
+        .expander-spacer { width: 14px; }
+        .inline-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .tabs { display: flex; border-bottom: 1px solid var(--vscode-panel-border); margin-bottom: 12px; }
         .tab {
             padding: 8px 16px;
             cursor: pointer;
@@ -436,37 +376,19 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
             font-size: 12px;
             font-weight: 500;
             border-bottom: 2px solid transparent;
-            transition: all 0.2s;
         }
-
-        .tab:hover {
-            color: var(--vscode-foreground);
-        }
-
-        .tab.active {
-            color: var(--vscode-foreground);
-            border-bottom-color: var(--vscode-focusBorder);
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .divider {
-            height: 1px;
-            background: var(--vscode-panel-border);
-            margin: 16px 0;
-        }
-
-        .info-text {
+        .tab:hover { color: var(--vscode-foreground); }
+        .tab.active { color: var(--vscode-foreground); border-bottom-color: var(--vscode-focusBorder); }
+        .divider { height: 1px; background: var(--vscode-panel-border); margin: 16px 0; }
+        .info-text { font-size: 11px; color: var(--vscode-descriptionForeground); margin-top: 4px; }
+        .selection-summary {
+            background: var(--vscode-editor-background);
+            padding: 8px;
+            border-radius: 3px;
+            margin-top: 8px;
             font-size: 11px;
-            color: var(--vscode-descriptionForeground);
-            margin-top: 4px;
         }
+        .selection-summary strong { color: var(--vscode-textLink-foreground); }
     </style>
 </head>
 <body>
@@ -501,7 +423,7 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
             </div>
             <div class="section-content">
                 <div class="form-group">
-                    <label>Select Tests to Run</label>
+                    <label>Select Tests, Suites, or Modules</label>
                     <div class="test-tree" id="testTree">
                         <div style="color: var(--vscode-descriptionForeground); font-style: italic;">
                             No tests found. Place .robot files in the Tests folder.
@@ -511,10 +433,18 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
                         Refresh Test List
                     </button>
                 </div>
-                <div class="form-group">
+                <div id="selectionSummary" class="selection-summary" style="display: none;">
+                    <strong>Selected:</strong> <span id="selectionText">None</span>
+                </div>
+                <div class="form-group" style="margin-top: 12px;">
                     <label for="customTestPath">Or Enter Custom Path</label>
                     <input type="text" id="customTestPath" placeholder="Tests/MyModule/MyTest.robot">
-                    <div class="info-text">Leave empty to use selected tests above</div>
+                    <div class="info-text">Overrides checkbox selection above</div>
+                </div>
+                <div class="form-group">
+                    <label for="testCaseFilter">Run Specific Test Cases (--test)</label>
+                    <input type="text" id="testCaseFilter" placeholder="Test Case Name (comma separated for multiple)">
+                    <div class="info-text">Filter by test case name. Supports wildcards like "Login*"</div>
                 </div>
             </div>
         </div>
@@ -531,7 +461,6 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
                     <button class="tab" onclick="switchTab('local')">Local</button>
                 </div>
 
-                <!-- Common Settings -->
                 <div class="form-group">
                     <label for="environment">Environment</label>
                     <select id="environment">
@@ -589,7 +518,6 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
 
                 <div class="divider"></div>
 
-                <!-- Boolean Options -->
                 <div class="inline-group">
                     <div class="form-group">
                         <label for="headless">Headless</label>
@@ -772,12 +700,8 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
                     <span>Ready</span>
                 </div>
                 <div class="btn-group">
-                    <button class="btn btn-primary" id="runDockerBtn" onclick="runTests('docker')">
-                        Run (Docker)
-                    </button>
-                    <button class="btn btn-primary" id="runLocalBtn" onclick="runTests('local')">
-                        Run (Local)
-                    </button>
+                    <button class="btn btn-primary" id="runDockerBtn" onclick="runTests('docker')">Run (Docker)</button>
+                    <button class="btn btn-primary" id="runLocalBtn" onclick="runTests('local')">Run (Local)</button>
                 </div>
                 <button class="btn btn-danger" id="stopTestsBtn" onclick="stopTests()" style="width: 100%; margin-top: 8px;" disabled>
                     Stop Tests
@@ -789,14 +713,12 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
     <script>
         const vscode = acquireVsCodeApi();
         let currentTab = 'docker';
-        let selectedTests = new Set();
+        let selectedItems = [];  // Array of {type, name, path, testName?}
 
-        // Request initial state when loaded
         window.addEventListener('load', () => {
             vscode.postMessage({ type: 'getInitialState' });
         });
 
-        // Handle messages from extension
         window.addEventListener('message', event => {
             const message = event.data;
             switch (message.type) {
@@ -829,11 +751,8 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
             currentTab = tab;
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelector('.tab:' + (tab === 'docker' ? 'first-child' : 'last-child')).classList.add('active');
-
             document.getElementById('dockerOptions').style.display = tab === 'docker' ? 'block' : 'none';
             document.getElementById('localOptions').style.display = tab === 'local' ? 'block' : 'none';
-
-            // Update default environment based on tab
             if (tab === 'docker') {
                 document.getElementById('environment').value = 'uat';
             } else {
@@ -854,7 +773,6 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
             const status = document.getElementById('serviceStatus');
             const startBtn = document.getElementById('startServiceBtn');
             const stopBtn = document.getElementById('stopServiceBtn');
-
             if (running) {
                 status.className = 'status-indicator running';
                 status.innerHTML = '<span class="status-dot running"></span><span>Running on port ' + port + '</span>';
@@ -873,7 +791,6 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
             const runDockerBtn = document.getElementById('runDockerBtn');
             const runLocalBtn = document.getElementById('runLocalBtn');
             const stopBtn = document.getElementById('stopTestsBtn');
-
             if (running) {
                 status.className = 'status-indicator running';
                 status.innerHTML = '<span class="status-dot running"></span><span>Tests Running...</span>';
@@ -889,19 +806,37 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
             }
         }
 
-        function getSelectedTestPaths() {
-            if (selectedTests.size === 0) {
-                return 'Tests';
+        function updateSelectionSummary() {
+            const summary = document.getElementById('selectionSummary');
+            const text = document.getElementById('selectionText');
+            if (selectedItems.length === 0) {
+                summary.style.display = 'none';
+            } else {
+                summary.style.display = 'block';
+                const modules = selectedItems.filter(i => i.type === 'module').length;
+                const suites = selectedItems.filter(i => i.type === 'suite').length;
+                const tests = selectedItems.filter(i => i.type === 'test').length;
+                const parts = [];
+                if (modules > 0) parts.push(modules + ' module(s)');
+                if (suites > 0) parts.push(suites + ' suite(s)');
+                if (tests > 0) parts.push(tests + ' test(s)');
+                text.textContent = parts.join(', ');
             }
-            return Array.from(selectedTests).join(' ');
         }
 
         function getConfig() {
             const customPath = document.getElementById('customTestPath').value.trim();
-            const testPaths = customPath || getSelectedTestPaths();
+            const testCaseFilter = document.getElementById('testCaseFilter').value.trim();
+
+            // Parse test case names from filter input
+            const testCaseNames = testCaseFilter
+                ? testCaseFilter.split(',').map(t => t.trim()).filter(t => t)
+                : selectedItems.filter(i => i.type === 'test').map(i => i.testName);
 
             return {
-                testPaths,
+                selections: selectedItems,
+                customTestPath: customPath,
+                testCaseNames: testCaseNames,
                 captchaSolver: document.getElementById('captchaSolver').value === 'true',
                 windowFull: document.getElementById('windowFull').value === 'true',
                 windowMaximized: document.getElementById('windowMaximized').value === 'true',
@@ -933,7 +868,6 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
 
         function applyConfig(config) {
             if (!config) return;
-
             document.getElementById('environment').value = config.developmentEnvironment || 'uat';
             document.getElementById('executionEnv').value = config.executionEnv || 'local';
             document.getElementById('windowWidth').value = config.windowWidth || 1920;
@@ -977,43 +911,83 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
 
         function renderTestTree(tests) {
             const tree = document.getElementById('testTree');
-
             if (!tests || tests.length === 0) {
                 tree.innerHTML = '<div style="color: var(--vscode-descriptionForeground); font-style: italic;">No tests found. Place .robot files in the Tests folder.</div>';
                 return;
             }
-
             tree.innerHTML = renderTestItems(tests);
         }
 
-        function renderTestItems(items, level = 0) {
+        function escapeId(str) {
+            return str.replace(/[^a-zA-Z0-9]/g, '_');
+        }
+
+        function renderTestItems(items) {
             let html = '';
-
             for (const item of items) {
-                const icon = item.type === 'module' ? '📁' : '📄';
-                const itemClass = 'test-item ' + item.type;
+                let icon = '📄';
+                if (item.type === 'module') icon = '📁';
+                else if (item.type === 'test') icon = '🧪';
 
-                html += '<div class="' + itemClass + '">';
-                html += '<input type="checkbox" id="test-' + item.path + '" onchange="toggleTest(\\'' + item.path + '\\', this.checked)">';
-                html += '<label for="test-' + item.path + '">' + icon + ' ' + item.name + '</label>';
+                const itemId = escapeId(item.path + (item.testName || ''));
+                const itemData = JSON.stringify({
+                    type: item.type,
+                    name: item.name,
+                    path: item.path,
+                    testName: item.testName || null
+                }).replace(/"/g, '&quot;');
+
+                const hasChildren = item.children && item.children.length > 0;
+                const expanderId = 'exp_' + itemId;
+
+                html += '<div class="test-item ' + item.type + '">';
+                if (hasChildren) {
+                    html += '<span class="expander" id="' + expanderId + '" onclick="toggleExpand(\\'' + expanderId + '\\')">▶</span>';
+                } else {
+                    html += '<span class="expander-spacer"></span>';
+                }
+                html += '<input type="checkbox" id="chk_' + itemId + '" onchange="toggleItem(this, ' + "'" + itemData + "'" + ')">';
+                html += '<label for="chk_' + itemId + '">' + icon + ' ' + item.name + '</label>';
                 html += '</div>';
 
-                if (item.children && item.children.length > 0) {
-                    html += '<div class="test-children">';
-                    html += renderTestItems(item.children, level + 1);
+                if (hasChildren) {
+                    html += '<div class="test-children collapsed" id="children_' + expanderId + '">';
+                    html += renderTestItems(item.children);
                     html += '</div>';
                 }
             }
-
             return html;
         }
 
-        function toggleTest(path, checked) {
-            if (checked) {
-                selectedTests.add(path);
+        function toggleExpand(expanderId) {
+            const expander = document.getElementById(expanderId);
+            const children = document.getElementById('children_' + expanderId);
+            if (children.classList.contains('collapsed')) {
+                children.classList.remove('collapsed');
+                expander.textContent = '▼';
             } else {
-                selectedTests.delete(path);
+                children.classList.add('collapsed');
+                expander.textContent = '▶';
             }
+        }
+
+        function toggleItem(checkbox, dataStr) {
+            const data = JSON.parse(dataStr.replace(/&quot;/g, '"'));
+            if (checkbox.checked) {
+                // Add to selection if not already there
+                const exists = selectedItems.some(i =>
+                    i.path === data.path && i.type === data.type && i.testName === data.testName
+                );
+                if (!exists) {
+                    selectedItems.push(data);
+                }
+            } else {
+                // Remove from selection
+                selectedItems = selectedItems.filter(i =>
+                    !(i.path === data.path && i.type === data.type && i.testName === data.testName)
+                );
+            }
+            updateSelectionSummary();
         }
     </script>
 </body>
