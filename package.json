@@ -1,0 +1,73 @@
+{
+  "name": "rf-test-runner",
+  "displayName": "Robot Framework Test Runner",
+  "description": "Run Robot Framework tests with configurable options and manage results service",
+  "version": "1.0.0",
+  "publisher": "rf-automation",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Testing",
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "rf-test-runner",
+          "title": "RF Test Runner",
+          "icon": "resources/robot.svg"
+        }
+      ]
+    },
+    "views": {
+      "rf-test-runner": [
+        {
+          "type": "webview",
+          "id": "rfTestRunner.configView",
+          "name": "Test Configuration"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "rfTestRunner.startResultsService",
+        "title": "RF: Start Results Service"
+      },
+      {
+        "command": "rfTestRunner.stopResultsService",
+        "title": "RF: Stop Results Service"
+      },
+      {
+        "command": "rfTestRunner.runTests",
+        "title": "RF: Run Tests (Docker)"
+      },
+      {
+        "command": "rfTestRunner.runTestsLocal",
+        "title": "RF: Run Tests (Local)"
+      },
+      {
+        "command": "rfTestRunner.refreshTests",
+        "title": "RF: Refresh Test List"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.0"
+  }
+}
