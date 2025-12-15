@@ -15,7 +15,7 @@ interface TestItem {
 export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'rfTestRunner.configView';
     private _view?: vscode.WebviewView;
-    private config: TestConfig = { ...defaultConfig };
+    private config: TestConfig;
     private testItems: TestItem[] = [];
 
     constructor(
@@ -24,7 +24,22 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
         private readonly resultsService: ResultsServiceManager,
         private readonly testRunner: TestRunner
     ) {
+        this.config = this.loadConfigFromWorkspace();
         this.scanForTests();
+    }
+
+    private loadConfigFromWorkspace(): TestConfig {
+        const workspaceConfig = vscode.workspace.getConfiguration('rfTestRunner');
+        const savedConfig = workspaceConfig.get('config', {}) as Partial<TestConfig>;
+
+        // Merge saved config with defaults to ensure all properties exist
+        return { ...defaultConfig, ...savedConfig };
+    }
+
+    private saveConfigToWorkspace(config: TestConfig): void {
+        const workspaceConfig = vscode.workspace.getConfiguration('rfTestRunner');
+        // Only save the values that are different from defaults to keep the settings clean
+        workspaceConfig.update('config', config, vscode.ConfigurationTarget.Workspace);
     }
 
     public resolveWebviewView(
@@ -53,6 +68,7 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'runTests':
                     this.config = { ...this.config, ...data.config };
+                    this.saveConfigToWorkspace(this.config); // Save config before running tests
                     await this.testRunner.run(data.mode, this.config);
                     this.updateRunnerStatus();
                     break;
@@ -62,6 +78,7 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'updateConfig':
                     this.config = { ...this.config, ...data.config };
+                    this.saveConfigToWorkspace(this.config); // Save config when updated
                     break;
                 case 'refreshTests':
                     this.scanForTests();
@@ -118,6 +135,7 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
     }
 
     public runTests(mode: 'docker' | 'local') {
+        this.saveConfigToWorkspace(this.config); // Ensure config is saved before running
         this.testRunner.run(mode, this.config);
         this.updateRunnerStatus();
     }

@@ -53,7 +53,45 @@
         "command": "rfTestRunner.refreshTests",
         "title": "RF: Refresh Test List"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "RF Test Runner",
+      "properties": {
+        "rfTestRunner.config": {
+          "type": "object",
+          "default": {},
+          "description": "Configuration for Robot Framework test execution",
+          "properties": {
+            "captchaSolver": { "type": "boolean", "default": true },
+            "windowFull": { "type": "boolean", "default": false },
+            "windowMaximized": { "type": "boolean", "default": false },
+            "headless": { "type": "boolean", "default": false },
+            "runOffline": { "type": "boolean", "default": false },
+            "devTools": { "type": "boolean", "default": false },
+            "chromeSecuritySandbox": { "type": "boolean", "default": false },
+            "playwrightTracing": { "type": "boolean", "default": false },
+            "developmentEnvironment": { "type": "string", "default": "uat" },
+            "executionEnv": { "type": "string", "default": "local" },
+            "omitContent": { "type": "boolean", "default": false },
+            "recordVideo": { "type": "boolean", "default": false },
+            "enableHar": { "type": "boolean", "default": false },
+            "windowHeight": { "type": "number", "default": 1080 },
+            "windowWidth": { "type": "number", "default": 1920 },
+            "contextType": { "type": "string", "default": "NORMAL" },
+            "logLevel": { "type": "string", "default": "TRACE" },
+            "reportTitle": { "type": "string", "default": "Unified Automation Regression Testing Report" },
+            "customVariables": { "type": "string", "default": "" },
+            "maximizeBrowser": { "type": "boolean", "default": false },
+            "autoCloseBrowser": { "type": "boolean", "default": true },
+            "keepVncOpen": { "type": "boolean", "default": false },
+            "fullWidthViewport": { "type": "boolean", "default": false },
+            "imageName": { "type": "string", "default": "robot-framework-custom:latest" },
+            "installDependencies": { "type": "boolean", "default": false },
+            "checkDeps": { "type": "boolean", "default": false }
+          }
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
