@@ -231,75 +231,24 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RF Test Runner</title>
     <style>
-        :root {
-            --vscode-font-family: var(--vscode-editor-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
-        }
+        :root { --vscode-font-family: var(--vscode-editor-font-family, -apple-system, BlinkMacSystemFont, sans-serif); }
         * { box-sizing: border-box; }
-        body {
-            font-family: var(--vscode-font-family);
-            font-size: 13px;
-            padding: 0;
-            margin: 0;
-            color: var(--vscode-foreground);
-            background: var(--vscode-sideBar-background);
-        }
+        body { font-family: var(--vscode-font-family); font-size: 13px; padding: 0; margin: 0; color: var(--vscode-foreground); background: var(--vscode-sideBar-background); }
         .container { padding: 10px; }
-        .section {
-            margin-bottom: 16px;
-            border: 1px solid var(--vscode-panel-border);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        .section-header {
-            background: var(--vscode-sideBarSectionHeader-background);
-            padding: 8px 12px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            user-select: none;
-        }
+        .section { margin-bottom: 16px; border: 1px solid var(--vscode-panel-border); border-radius: 4px; overflow: hidden; }
+        .section-header { background: var(--vscode-sideBarSectionHeader-background); padding: 8px 12px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
         .section-header:hover { background: var(--vscode-list-hoverBackground); }
         .section-header .toggle { font-size: 10px; }
         .section-content { padding: 12px; display: block; }
         .section-content.collapsed { display: none; }
         .form-group { margin-bottom: 12px; }
         .form-group:last-child { margin-bottom: 0; }
-        label {
-            display: block;
-            margin-bottom: 4px;
-            font-weight: 500;
-            color: var(--vscode-descriptionForeground);
-        }
-        input[type="text"], input[type="number"], select, textarea {
-            width: 100%;
-            padding: 6px 8px;
-            border: 1px solid var(--vscode-input-border);
-            background: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            border-radius: 3px;
-            font-size: 12px;
-        }
-        input:focus, select:focus, textarea:focus {
-            outline: 1px solid var(--vscode-focusBorder);
-            border-color: var(--vscode-focusBorder);
-        }
-        textarea {
-            min-height: 60px;
-            resize: vertical;
-            font-family: var(--vscode-editor-font-family);
-        }
+        label { display: block; margin-bottom: 4px; font-weight: 500; color: var(--vscode-descriptionForeground); }
+        input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 6px 8px; border: 1px solid var(--vscode-input-border); background: var(--vscode-input-background); color: var(--vscode-input-foreground); border-radius: 3px; font-size: 12px; }
+        input:focus, select:focus, textarea:focus { outline: 1px solid var(--vscode-focusBorder); border-color: var(--vscode-focusBorder); }
+        textarea { min-height: 60px; resize: vertical; font-family: var(--vscode-editor-font-family); }
         select { cursor: pointer; }
-        .btn {
-            padding: 8px 14px;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
-            transition: opacity 0.2s;
-        }
+        .btn { padding: 8px 14px; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: 500; transition: opacity 0.2s; }
         .btn:hover { opacity: 0.9; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
@@ -308,87 +257,26 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
         .btn-success { background: #388e3c; color: white; }
         .btn-group { display: flex; gap: 8px; margin-top: 10px; }
         .btn-group .btn { flex: 1; }
-        .status-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 11px;
-            margin-bottom: 10px;
-        }
+        .status-indicator { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 3px; font-size: 11px; margin-bottom: 10px; }
         .status-indicator.running { background: rgba(56, 142, 60, 0.2); color: #81c784; }
         .status-indicator.stopped { background: rgba(211, 47, 47, 0.2); color: #e57373; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; }
         .status-dot.running { background: #81c784; animation: pulse 1.5s infinite; }
         .status-dot.stopped { background: #e57373; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .test-tree {
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 3px;
-            padding: 8px;
-            background: var(--vscode-input-background);
-        }
-        .test-item {
-            padding: 3px 0;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .test-item input[type="checkbox"] { margin: 0; cursor: pointer; }
-        .test-item label {
-            margin: 0;
-            cursor: pointer;
-            display: inline;
-            font-weight: normal;
-            color: var(--vscode-foreground);
-            flex: 1;
-        }
-        .test-item.module > label { font-weight: 600; color: var(--vscode-textLink-foreground); }
-        .test-item.suite > label { color: var(--vscode-symbolIcon-fileForeground); font-weight: 500; }
-        .test-item.test > label { color: var(--vscode-foreground); font-size: 12px; }
-        .test-children {
-            margin-left: 18px;
-            border-left: 1px solid var(--vscode-panel-border);
-            padding-left: 8px;
-        }
-        .test-children.collapsed { display: none; }
-        .expander {
-            cursor: pointer;
-            font-size: 10px;
-            width: 14px;
-            text-align: center;
-            color: var(--vscode-descriptionForeground);
-            user-select: none;
-        }
-        .expander:hover { color: var(--vscode-foreground); }
-        .expander-spacer { width: 14px; }
         .inline-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .tabs { display: flex; border-bottom: 1px solid var(--vscode-panel-border); margin-bottom: 12px; }
-        .tab {
-            padding: 8px 16px;
-            cursor: pointer;
-            border: none;
-            background: transparent;
-            color: var(--vscode-descriptionForeground);
-            font-size: 12px;
-            font-weight: 500;
-            border-bottom: 2px solid transparent;
-        }
+        .tab { padding: 8px 12px; cursor: pointer; border: none; background: transparent; color: var(--vscode-descriptionForeground); font-size: 11px; font-weight: 500; border-bottom: 2px solid transparent; flex: 1; text-align: center; }
         .tab:hover { color: var(--vscode-foreground); }
         .tab.active { color: var(--vscode-foreground); border-bottom-color: var(--vscode-focusBorder); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
         .divider { height: 1px; background: var(--vscode-panel-border); margin: 16px 0; }
         .info-text { font-size: 11px; color: var(--vscode-descriptionForeground); margin-top: 4px; }
-        .selection-summary {
-            background: var(--vscode-editor-background);
-            padding: 8px;
-            border-radius: 3px;
-            margin-top: 8px;
-            font-size: 11px;
-        }
-        .selection-summary strong { color: var(--vscode-textLink-foreground); }
+        .test-list { max-height: 200px; overflow-y: auto; border: 1px solid var(--vscode-input-border); border-radius: 3px; padding: 8px; background: var(--vscode-input-background); }
+        .test-item { padding: 4px 0; display: flex; align-items: center; gap: 6px; }
+        .test-item input[type="radio"], .test-item input[type="checkbox"] { margin: 0; cursor: pointer; }
+        .test-item label { margin: 0; cursor: pointer; display: inline; font-weight: normal; color: var(--vscode-foreground); flex: 1; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -415,36 +303,63 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
             </div>
         </div>
 
-        <!-- Test Selection Section -->
+        <!-- Test Selection Section with 3 Tabs -->
         <div class="section">
             <div class="section-header" onclick="toggleSection(this)">
                 <span>Test Selection</span>
                 <span class="toggle">▼</span>
             </div>
             <div class="section-content">
-                <div class="form-group">
-                    <label>Select Tests, Suites, or Modules</label>
-                    <div class="test-tree" id="testTree">
-                        <div style="color: var(--vscode-descriptionForeground); font-style: italic;">
-                            No tests found. Place .robot files in the Tests folder.
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTestTab('single')">Single Test</button>
+                    <button class="tab" onclick="switchTestTab('suite')">Suite(s)</button>
+                    <button class="tab" onclick="switchTestTab('module')">Module</button>
+                </div>
+
+                <!-- Single Test Tab -->
+                <div id="singleTestTab" class="tab-content active">
+                    <div class="form-group">
+                        <label for="singleTestSuite">Select Suite</label>
+                        <select id="singleTestSuite" onchange="updateTestCaseList()">
+                            <option value="">-- Select a suite --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Test Case</label>
+                        <div class="test-list" id="testCaseList">
+                            <div style="color: var(--vscode-descriptionForeground); font-style: italic;">Select a suite first</div>
                         </div>
                     </div>
-                    <button class="btn btn-secondary" onclick="refreshTests()" style="margin-top: 8px; width: 100%;">
-                        Refresh Test List
-                    </button>
                 </div>
-                <div id="selectionSummary" class="selection-summary" style="display: none;">
-                    <strong>Selected:</strong> <span id="selectionText">None</span>
+
+                <!-- Suite(s) Tab -->
+                <div id="suiteTab" class="tab-content">
+                    <div class="form-group">
+                        <label>Select Suite(s) to Run</label>
+                        <div class="test-list" id="suiteList">
+                            <div style="color: var(--vscode-descriptionForeground); font-style: italic;">No suites found</div>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Module Tab -->
+                <div id="moduleTab" class="tab-content">
+                    <div class="form-group">
+                        <label>Select Module (Folder)</label>
+                        <div class="test-list" id="moduleList">
+                            <div style="color: var(--vscode-descriptionForeground); font-style: italic;">No modules found</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-secondary" onclick="refreshTests()" style="margin-top: 8px; width: 100%;">
+                    Refresh Test List
+                </button>
+
                 <div class="form-group" style="margin-top: 12px;">
                     <label for="customTestPath">Or Enter Custom Path</label>
-                    <input type="text" id="customTestPath" placeholder="Tests/MyModule/MyTest.robot">
-                    <div class="info-text">Overrides checkbox selection above</div>
-                </div>
-                <div class="form-group">
-                    <label for="testCaseFilter">Run Specific Test Cases (--test)</label>
-                    <input type="text" id="testCaseFilter" placeholder="Test Case Name (comma separated for multiple)">
-                    <div class="info-text">Filter by test case name. Supports wildcards like "Login*"</div>
+                    <input type="text" id="customTestPath" placeholder="Tests/MyModule/MySuite.robot">
+                    <div class="info-text">Overrides selection above</div>
                 </div>
             </div>
         </div>
@@ -457,8 +372,8 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
             </div>
             <div class="section-content">
                 <div class="tabs">
-                    <button class="tab active" onclick="switchTab('docker')">Docker</button>
-                    <button class="tab" onclick="switchTab('local')">Local</button>
+                    <button class="tab active" onclick="switchRunTab('docker')" id="dockerTabBtn">Docker</button>
+                    <button class="tab" onclick="switchRunTab('local')" id="localTabBtn">Local</button>
                 </div>
 
                 <div class="form-group">
@@ -491,24 +406,25 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="contextType">Context Type</label>
-                    <select id="contextType">
-                        <option value="NORMAL">Normal</option>
-                        <option value="INCOGNITO">Incognito</option>
-                        <option value="PERSISTENT">Persistent</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="logLevel">Log Level</label>
-                    <select id="logLevel">
-                        <option value="TRACE">TRACE</option>
-                        <option value="DEBUG">DEBUG</option>
-                        <option value="INFO">INFO</option>
-                        <option value="WARN">WARN</option>
-                        <option value="ERROR">ERROR</option>
-                    </select>
+                <div class="inline-group">
+                    <div class="form-group">
+                        <label for="contextType">Context Type</label>
+                        <select id="contextType">
+                            <option value="NORMAL">Normal</option>
+                            <option value="INCOGNITO">Incognito</option>
+                            <option value="PERSISTENT">Persistent</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="logLevel">Log Level</label>
+                        <select id="logLevel">
+                            <option value="TRACE">TRACE</option>
+                            <option value="DEBUG">DEBUG</option>
+                            <option value="INFO">INFO</option>
+                            <option value="WARN">WARN</option>
+                            <option value="ERROR">ERROR</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -521,135 +437,87 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
                 <div class="inline-group">
                     <div class="form-group">
                         <label for="headless">Headless</label>
-                        <select id="headless">
-                            <option value="false">False</option>
-                            <option value="true">True</option>
-                        </select>
+                        <select id="headless"><option value="false">False</option><option value="true">True</option></select>
                     </div>
                     <div class="form-group">
                         <label for="captchaSolver">Captcha Solver</label>
-                        <select id="captchaSolver">
-                            <option value="true">True</option>
-                            <option value="false">False</option>
-                        </select>
+                        <select id="captchaSolver"><option value="true">True</option><option value="false">False</option></select>
                     </div>
                 </div>
 
                 <div class="inline-group">
                     <div class="form-group">
                         <label for="windowFull">Window Full</label>
-                        <select id="windowFull">
-                            <option value="false">False</option>
-                            <option value="true">True</option>
-                        </select>
+                        <select id="windowFull"><option value="false">False</option><option value="true">True</option></select>
                     </div>
                     <div class="form-group">
                         <label for="windowMaximized">Window Maximized</label>
-                        <select id="windowMaximized">
-                            <option value="false">False</option>
-                            <option value="true">True</option>
-                        </select>
+                        <select id="windowMaximized"><option value="false">False</option><option value="true">True</option></select>
                     </div>
                 </div>
 
                 <div class="inline-group">
                     <div class="form-group">
                         <label for="recordVideo">Record Video</label>
-                        <select id="recordVideo">
-                            <option value="false">False</option>
-                            <option value="true">True</option>
-                        </select>
+                        <select id="recordVideo"><option value="false">False</option><option value="true">True</option></select>
                     </div>
                     <div class="form-group">
                         <label for="enableHar">Enable HAR</label>
-                        <select id="enableHar">
-                            <option value="false">False</option>
-                            <option value="true">True</option>
-                        </select>
+                        <select id="enableHar"><option value="false">False</option><option value="true">True</option></select>
                     </div>
                 </div>
 
                 <div class="inline-group">
                     <div class="form-group">
                         <label for="playwrightTracing">Playwright Tracing</label>
-                        <select id="playwrightTracing">
-                            <option value="false">False</option>
-                            <option value="true">True</option>
-                        </select>
+                        <select id="playwrightTracing"><option value="false">False</option><option value="true">True</option></select>
                     </div>
                     <div class="form-group">
                         <label for="devTools">Dev Tools</label>
-                        <select id="devTools">
-                            <option value="false">False</option>
-                            <option value="true">True</option>
-                        </select>
+                        <select id="devTools"><option value="false">False</option><option value="true">True</option></select>
                     </div>
                 </div>
 
                 <div class="inline-group">
                     <div class="form-group">
                         <label for="runOffline">Run Offline</label>
-                        <select id="runOffline">
-                            <option value="false">False</option>
-                            <option value="true">True</option>
-                        </select>
+                        <select id="runOffline"><option value="false">False</option><option value="true">True</option></select>
                     </div>
                     <div class="form-group">
                         <label for="omitContent">Omit Content</label>
-                        <select id="omitContent">
-                            <option value="false">False</option>
-                            <option value="true">True</option>
-                        </select>
+                        <select id="omitContent"><option value="false">False</option><option value="true">True</option></select>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label for="chromeSecuritySandbox">Chrome Security Sandbox</label>
-                    <select id="chromeSecuritySandbox">
-                        <option value="false">False</option>
-                        <option value="true">True</option>
-                    </select>
+                    <select id="chromeSecuritySandbox"><option value="false">False</option><option value="true">True</option></select>
                 </div>
 
                 <!-- Docker-only Options -->
                 <div id="dockerOptions">
                     <div class="divider"></div>
                     <label style="font-weight: 600; margin-bottom: 10px; display: block; color: var(--vscode-textLink-foreground);">Docker Options</label>
-
                     <div class="inline-group">
                         <div class="form-group">
                             <label for="maximizeBrowser">Maximize Browser</label>
-                            <select id="maximizeBrowser">
-                                <option value="false">False</option>
-                                <option value="true">True</option>
-                            </select>
+                            <select id="maximizeBrowser"><option value="false">False</option><option value="true">True</option></select>
                         </div>
                         <div class="form-group">
                             <label for="autoCloseBrowser">Auto Close Browser</label>
-                            <select id="autoCloseBrowser">
-                                <option value="true">True</option>
-                                <option value="false">False</option>
-                            </select>
+                            <select id="autoCloseBrowser"><option value="true">True</option><option value="false">False</option></select>
                         </div>
                     </div>
-
                     <div class="inline-group">
                         <div class="form-group">
                             <label for="keepVncOpen">Keep VNC Open</label>
-                            <select id="keepVncOpen">
-                                <option value="false">False</option>
-                                <option value="true">True</option>
-                            </select>
+                            <select id="keepVncOpen"><option value="false">False</option><option value="true">True</option></select>
                         </div>
                         <div class="form-group">
                             <label for="fullWidthViewport">Full Width Viewport</label>
-                            <select id="fullWidthViewport">
-                                <option value="false">False</option>
-                                <option value="true">True</option>
-                            </select>
+                            <select id="fullWidthViewport"><option value="false">False</option><option value="true">True</option></select>
                         </div>
                     </div>
-
                     <div class="form-group">
                         <label for="imageName">Docker Image</label>
                         <input type="text" id="imageName" value="robot-framework-custom:latest">
@@ -660,21 +528,14 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
                 <div id="localOptions" style="display: none;">
                     <div class="divider"></div>
                     <label style="font-weight: 600; margin-bottom: 10px; display: block; color: var(--vscode-textLink-foreground);">Local Options</label>
-
                     <div class="inline-group">
                         <div class="form-group">
                             <label for="installDependencies">Install Dependencies</label>
-                            <select id="installDependencies">
-                                <option value="false">False</option>
-                                <option value="true">True</option>
-                            </select>
+                            <select id="installDependencies"><option value="false">False</option><option value="true">True</option></select>
                         </div>
                         <div class="form-group">
                             <label for="checkDeps">Check Dependencies</label>
-                            <select id="checkDeps">
-                                <option value="false">False</option>
-                                <option value="true">True</option>
-                            </select>
+                            <select id="checkDeps"><option value="false">False</option><option value="true">True</option></select>
                         </div>
                     </div>
                 </div>
@@ -712,8 +573,12 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
 
     <script>
         const vscode = acquireVsCodeApi();
-        let currentTab = 'docker';
-        let selectedItems = [];  // Array of {type, name, path, testName?}
+        let currentTestTab = 'single';
+        let currentRunTab = 'docker';
+        let allTests = [];
+        let selectedTestCase = null;
+        let selectedSuites = [];
+        let selectedModule = null;
 
         window.addEventListener('load', () => {
             vscode.postMessage({ type: 'getInitialState' });
@@ -724,7 +589,8 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
             switch (message.type) {
                 case 'initialState':
                     applyConfig(message.config);
-                    renderTestTree(message.tests);
+                    allTests = message.tests || [];
+                    populateTestSelections();
                     updateServiceUI(message.resultsServiceRunning, message.resultsServicePort);
                     updateRunnerUI(message.testRunning);
                     break;
@@ -735,7 +601,8 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
                     updateRunnerUI(message.running);
                     break;
                 case 'testList':
-                    renderTestTree(message.tests);
+                    allTests = message.tests || [];
+                    populateTestSelections();
                     break;
             }
         });
@@ -747,17 +614,155 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
             toggle.textContent = content.classList.contains('collapsed') ? '▶' : '▼';
         }
 
-        function switchTab(tab) {
-            currentTab = tab;
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelector('.tab:' + (tab === 'docker' ? 'first-child' : 'last-child')).classList.add('active');
+        function switchTestTab(tab) {
+            currentTestTab = tab;
+            document.querySelectorAll('#singleTestTab, #suiteTab, #moduleTab').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.section:nth-child(2) .tab').forEach(t => t.classList.remove('active'));
+
+            if (tab === 'single') {
+                document.getElementById('singleTestTab').classList.add('active');
+                document.querySelector('.section:nth-child(2) .tab:nth-child(1)').classList.add('active');
+            } else if (tab === 'suite') {
+                document.getElementById('suiteTab').classList.add('active');
+                document.querySelector('.section:nth-child(2) .tab:nth-child(2)').classList.add('active');
+            } else {
+                document.getElementById('moduleTab').classList.add('active');
+                document.querySelector('.section:nth-child(2) .tab:nth-child(3)').classList.add('active');
+            }
+        }
+
+        function switchRunTab(tab) {
+            currentRunTab = tab;
+            document.getElementById('dockerTabBtn').classList.toggle('active', tab === 'docker');
+            document.getElementById('localTabBtn').classList.toggle('active', tab === 'local');
             document.getElementById('dockerOptions').style.display = tab === 'docker' ? 'block' : 'none';
             document.getElementById('localOptions').style.display = tab === 'local' ? 'block' : 'none';
-            if (tab === 'docker') {
-                document.getElementById('environment').value = 'uat';
-            } else {
-                document.getElementById('environment').value = 'stage';
+            document.getElementById('environment').value = tab === 'docker' ? 'uat' : 'stage';
+        }
+
+        function populateTestSelections() {
+            populateSuiteDropdown();
+            populateSuiteList();
+            populateModuleList();
+        }
+
+        function getAllSuites(items, result = []) {
+            for (const item of items) {
+                if (item.type === 'suite') {
+                    result.push(item);
+                }
+                if (item.children) {
+                    getAllSuites(item.children, result);
+                }
             }
+            return result;
+        }
+
+        function getAllModules(items, result = []) {
+            for (const item of items) {
+                if (item.type === 'module') {
+                    result.push(item);
+                }
+                if (item.children) {
+                    getAllModules(item.children, result);
+                }
+            }
+            return result;
+        }
+
+        function populateSuiteDropdown() {
+            const select = document.getElementById('singleTestSuite');
+            const suites = getAllSuites(allTests);
+            select.innerHTML = '<option value="">-- Select a suite --</option>';
+            suites.forEach((suite, idx) => {
+                select.innerHTML += '<option value="' + idx + '">' + suite.path + '</option>';
+            });
+        }
+
+        function updateTestCaseList() {
+            const select = document.getElementById('singleTestSuite');
+            const list = document.getElementById('testCaseList');
+            const idx = select.value;
+
+            if (idx === '') {
+                list.innerHTML = '<div style="color: var(--vscode-descriptionForeground); font-style: italic;">Select a suite first</div>';
+                selectedTestCase = null;
+                return;
+            }
+
+            const suites = getAllSuites(allTests);
+            const suite = suites[parseInt(idx)];
+
+            if (!suite.children || suite.children.length === 0) {
+                list.innerHTML = '<div style="color: var(--vscode-descriptionForeground); font-style: italic;">No test cases found in this suite</div>';
+                return;
+            }
+
+            let html = '';
+            suite.children.forEach((tc, i) => {
+                const id = 'tc_' + idx + '_' + i;
+                html += '<div class="test-item">';
+                html += '<input type="radio" name="testCase" id="' + id + '" value="' + tc.testName + '" data-suite="' + suite.path + '" onchange="selectTestCase(this)">';
+                html += '<label for="' + id + '">🧪 ' + tc.name + '</label>';
+                html += '</div>';
+            });
+            list.innerHTML = html;
+        }
+
+        function selectTestCase(radio) {
+            selectedTestCase = { name: radio.value, suitePath: radio.dataset.suite };
+        }
+
+        function populateSuiteList() {
+            const list = document.getElementById('suiteList');
+            const suites = getAllSuites(allTests);
+
+            if (suites.length === 0) {
+                list.innerHTML = '<div style="color: var(--vscode-descriptionForeground); font-style: italic;">No suites found</div>';
+                return;
+            }
+
+            let html = '';
+            suites.forEach((suite, idx) => {
+                html += '<div class="test-item">';
+                html += '<input type="checkbox" id="suite_' + idx + '" value="' + suite.path + '" onchange="toggleSuiteSelection(this)">';
+                html += '<label for="suite_' + idx + '">📄 ' + suite.path + '</label>';
+                html += '</div>';
+            });
+            list.innerHTML = html;
+        }
+
+        function toggleSuiteSelection(checkbox) {
+            if (checkbox.checked) {
+                if (!selectedSuites.includes(checkbox.value)) {
+                    selectedSuites.push(checkbox.value);
+                }
+            } else {
+                selectedSuites = selectedSuites.filter(s => s !== checkbox.value);
+            }
+        }
+
+        function populateModuleList() {
+            const list = document.getElementById('moduleList');
+            const modules = getAllModules(allTests);
+
+            // Add root Tests folder
+            let html = '<div class="test-item">';
+            html += '<input type="radio" name="module" id="module_root" value="Tests" onchange="selectModule(this)">';
+            html += '<label for="module_root">📁 Tests (All)</label>';
+            html += '</div>';
+
+            modules.forEach((mod, idx) => {
+                html += '<div class="test-item">';
+                html += '<input type="radio" name="module" id="module_' + idx + '" value="' + mod.path + '" onchange="selectModule(this)">';
+                html += '<label for="module_' + idx + '">📁 ' + mod.path + '</label>';
+                html += '</div>';
+            });
+            list.innerHTML = html;
+        }
+
+        function selectModule(radio) {
+            selectedModule = radio.value;
         }
 
         function startService() {
@@ -806,37 +811,29 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
             }
         }
 
-        function updateSelectionSummary() {
-            const summary = document.getElementById('selectionSummary');
-            const text = document.getElementById('selectionText');
-            if (selectedItems.length === 0) {
-                summary.style.display = 'none';
-            } else {
-                summary.style.display = 'block';
-                const modules = selectedItems.filter(i => i.type === 'module').length;
-                const suites = selectedItems.filter(i => i.type === 'suite').length;
-                const tests = selectedItems.filter(i => i.type === 'test').length;
-                const parts = [];
-                if (modules > 0) parts.push(modules + ' module(s)');
-                if (suites > 0) parts.push(suites + ' suite(s)');
-                if (tests > 0) parts.push(tests + ' test(s)');
-                text.textContent = parts.join(', ');
+        function getTestSelection() {
+            const customPath = document.getElementById('customTestPath').value.trim();
+            if (customPath) {
+                return { testPath: customPath, testNames: [] };
             }
+
+            if (currentTestTab === 'single' && selectedTestCase) {
+                return { testPath: selectedTestCase.suitePath, testNames: [selectedTestCase.name] };
+            } else if (currentTestTab === 'suite' && selectedSuites.length > 0) {
+                return { testPath: selectedSuites.join(' '), testNames: [] };
+            } else if (currentTestTab === 'module' && selectedModule) {
+                return { testPath: selectedModule, testNames: [] };
+            }
+
+            return { testPath: 'Tests', testNames: [] };
         }
 
         function getConfig() {
-            const customPath = document.getElementById('customTestPath').value.trim();
-            const testCaseFilter = document.getElementById('testCaseFilter').value.trim();
-
-            // Parse test case names from filter input
-            const testCaseNames = testCaseFilter
-                ? testCaseFilter.split(',').map(t => t.trim()).filter(t => t)
-                : selectedItems.filter(i => i.type === 'test').map(i => i.testName);
-
+            const selection = getTestSelection();
             return {
-                selections: selectedItems,
-                customTestPath: customPath,
-                testCaseNames: testCaseNames,
+                selections: [],
+                customTestPath: selection.testPath,
+                testCaseNames: selection.testNames,
                 captchaSolver: document.getElementById('captchaSolver').value === 'true',
                 windowFull: document.getElementById('windowFull').value === 'true',
                 windowMaximized: document.getElementById('windowMaximized').value === 'true',
@@ -907,87 +904,6 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
 
         function refreshTests() {
             vscode.postMessage({ type: 'refreshTests' });
-        }
-
-        function renderTestTree(tests) {
-            const tree = document.getElementById('testTree');
-            if (!tests || tests.length === 0) {
-                tree.innerHTML = '<div style="color: var(--vscode-descriptionForeground); font-style: italic;">No tests found. Place .robot files in the Tests folder.</div>';
-                return;
-            }
-            tree.innerHTML = renderTestItems(tests);
-        }
-
-        function escapeId(str) {
-            return str.replace(/[^a-zA-Z0-9]/g, '_');
-        }
-
-        function renderTestItems(items) {
-            let html = '';
-            for (const item of items) {
-                let icon = '📄';
-                if (item.type === 'module') icon = '📁';
-                else if (item.type === 'test') icon = '🧪';
-
-                const itemId = escapeId(item.path + (item.testName || ''));
-                const itemData = JSON.stringify({
-                    type: item.type,
-                    name: item.name,
-                    path: item.path,
-                    testName: item.testName || null
-                }).replace(/"/g, '&quot;');
-
-                const hasChildren = item.children && item.children.length > 0;
-                const expanderId = 'exp_' + itemId;
-
-                html += '<div class="test-item ' + item.type + '">';
-                if (hasChildren) {
-                    html += '<span class="expander" id="' + expanderId + '" onclick="toggleExpand(\\'' + expanderId + '\\')">▶</span>';
-                } else {
-                    html += '<span class="expander-spacer"></span>';
-                }
-                html += '<input type="checkbox" id="chk_' + itemId + '" onchange="toggleItem(this, ' + "'" + itemData + "'" + ')">';
-                html += '<label for="chk_' + itemId + '">' + icon + ' ' + item.name + '</label>';
-                html += '</div>';
-
-                if (hasChildren) {
-                    html += '<div class="test-children collapsed" id="children_' + expanderId + '">';
-                    html += renderTestItems(item.children);
-                    html += '</div>';
-                }
-            }
-            return html;
-        }
-
-        function toggleExpand(expanderId) {
-            const expander = document.getElementById(expanderId);
-            const children = document.getElementById('children_' + expanderId);
-            if (children.classList.contains('collapsed')) {
-                children.classList.remove('collapsed');
-                expander.textContent = '▼';
-            } else {
-                children.classList.add('collapsed');
-                expander.textContent = '▶';
-            }
-        }
-
-        function toggleItem(checkbox, dataStr) {
-            const data = JSON.parse(dataStr.replace(/&quot;/g, '"'));
-            if (checkbox.checked) {
-                // Add to selection if not already there
-                const exists = selectedItems.some(i =>
-                    i.path === data.path && i.type === data.type && i.testName === data.testName
-                );
-                if (!exists) {
-                    selectedItems.push(data);
-                }
-            } else {
-                // Remove from selection
-                selectedItems = selectedItems.filter(i =>
-                    !(i.path === data.path && i.type === data.type && i.testName === data.testName)
-                );
-            }
-            updateSelectionSummary();
         }
     </script>
 </body>

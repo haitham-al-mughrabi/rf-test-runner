@@ -127,6 +127,13 @@ export class TestRunner {
     }
 
     /**
+     * Convert JavaScript boolean to Robot Framework boolean string (True/False)
+     */
+    private toBoolStr(value: boolean): string {
+        return value ? 'True' : 'False';
+    }
+
+    /**
      * Build the complete shell command as a single string
      */
     buildCommand(mode: 'docker' | 'local', config: TestConfig): string {
@@ -149,19 +156,19 @@ export class TestRunner {
             if (config.checkDeps) { parts.push('--check-deps'); }
         }
 
-        // Options with values
-        parts.push(`--captcha-solver ${config.captchaSolver}`);
-        parts.push(`--window-full ${config.windowFull}`);
-        parts.push(`--window-maximized ${config.windowMaximized}`);
-        parts.push(`--run-offline ${config.runOffline}`);
-        parts.push(`--dev-tools ${config.devTools}`);
-        parts.push(`--chrome-security-sandbox ${config.chromeSecuritySandbox}`);
-        parts.push(`--playwright-tracing ${config.playwrightTracing}`);
+        // Options with values - use Robot Framework boolean format (True/False)
+        parts.push(`--captcha-solver ${this.toBoolStr(config.captchaSolver)}`);
+        parts.push(`--window-full ${this.toBoolStr(config.windowFull)}`);
+        parts.push(`--window-maximized ${this.toBoolStr(config.windowMaximized)}`);
+        parts.push(`--run-offline ${this.toBoolStr(config.runOffline)}`);
+        parts.push(`--dev-tools ${this.toBoolStr(config.devTools)}`);
+        parts.push(`--chrome-security-sandbox ${this.toBoolStr(config.chromeSecuritySandbox)}`);
+        parts.push(`--playwright-tracing ${this.toBoolStr(config.playwrightTracing)}`);
         parts.push(`--environment ${config.developmentEnvironment}`);
         parts.push(`--execution-env ${config.executionEnv}`);
-        parts.push(`--omit-content ${config.omitContent}`);
-        parts.push(`--record-video ${config.recordVideo}`);
-        parts.push(`--enable-har ${config.enableHar}`);
+        parts.push(`--omit-content ${this.toBoolStr(config.omitContent)}`);
+        parts.push(`--record-video ${this.toBoolStr(config.recordVideo)}`);
+        parts.push(`--enable-har ${this.toBoolStr(config.enableHar)}`);
         parts.push(`--window-height ${config.windowHeight}`);
         parts.push(`--window-width ${config.windowWidth}`);
         parts.push(`--context-type ${config.contextType}`);
@@ -169,7 +176,7 @@ export class TestRunner {
         parts.push(`--report-title "${config.reportTitle}"`);
 
         if (mode === 'docker') {
-            parts.push(`--auto-close-browser ${config.autoCloseBrowser}`);
+            parts.push(`--auto-close-browser ${this.toBoolStr(config.autoCloseBrowser)}`);
         }
 
         // Custom variables (passed to script which passes to robot)
