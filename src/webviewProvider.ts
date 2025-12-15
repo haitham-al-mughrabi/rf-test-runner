@@ -145,6 +145,18 @@ export class RFTestRunnerViewProvider implements vscode.WebviewViewProvider {
         this.sendTestList();
     }
 
+    public updateRunnerStatusForTestRunner(running: boolean) {
+        // Update the internal runner status
+        this.testRunner.updateRunnerStatus(running);
+        this.updateRunnerStatus();
+
+        // Send message to webview to update UI
+        this._view?.webview.postMessage({
+            type: 'runnerStatus',
+            running: running
+        });
+    }
+
     private scanForTests() {
         this.testItems = [];
         const testsDir = path.join(this.workspaceRoot, 'Tests');

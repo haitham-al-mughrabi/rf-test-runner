@@ -1,0 +1,30 @@
+{
+    "rfTestRunner.config": {
+        "captchaSolver": true,
+        "windowFull": false,
+        "windowMaximized": false,
+        "headless": false,
+        "runOffline": false,
+        "devTools": false,
+        "chromeSecuritySandbox": false,
+        "playwrightTracing": false,
+        "developmentEnvironment": "uat",
+        "executionEnv": "local",
+        "omitContent": false,
+        "recordVideo": true,
+        "enableHar": false,
+        "windowHeight": 1080,
+        "windowWidth": 1920,
+        "contextType": "NORMAL",
+        "logLevel": "INFO",
+        "reportTitle": "Production Automation Testing Report",
+        "customVariables": "",
+        "maximizeBrowser": false,
+        "autoCloseBrowser": true,
+        "keepVncOpen": false,
+        "fullWidthViewport": false,
+        "imageName": "robot-framework-production:latest",
+        "installDependencies": false,
+        "checkDeps": true
+    }
+}

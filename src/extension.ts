@@ -21,6 +21,11 @@ export function activate(context: vscode.ExtensionContext) {
         testRunner
     );
 
+    // Set up the status change callback after the provider is created
+    testRunner.setOnStatusChange((running: boolean) => {
+        provider.updateRunnerStatusForTestRunner(running);
+    });
+
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(
             'rfTestRunner.configView',

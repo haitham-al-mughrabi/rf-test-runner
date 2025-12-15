@@ -84,6 +84,7 @@ export class TestRunner {
     private workspaceRoot: string;
     private currentProcess: cp.ChildProcess | null = null;
     private _isRunning: boolean = false;
+    private onStatusChange?: (running: boolean) => void;
 
     constructor(workspaceRoot: string) {
         this.workspaceRoot = workspaceRoot;
@@ -92,6 +93,14 @@ export class TestRunner {
 
     get isRunning(): boolean {
         return this._isRunning;
+    }
+
+    setOnStatusChange(callback: (running: boolean) => void) {
+        this.onStatusChange = callback;
+    }
+
+    updateRunnerStatus(running: boolean) {
+        this._isRunning = running;
     }
 
     /**
@@ -247,12 +256,22 @@ export class TestRunner {
                 } else {
                     vscode.window.showWarningMessage(`Tests finished with exit code ${code}`);
                 }
+
+                // Notify the webview that tests have stopped running
+                if (this.onStatusChange) {
+                    this.onStatusChange(false);
+                }
             });
 
             this.currentProcess.on('error', (err) => {
                 this._isRunning = false;
                 this.outputChannel.appendLine(`Error: ${err.message}`);
                 vscode.window.showErrorMessage(`Test execution failed: ${err.message}`);
+
+                // Notify the webview that tests have stopped running
+                if (this.onStatusChange) {
+                    this.onStatusChange(false);
+                }
             });
 
         } catch (error) {
