@@ -3,7 +3,12 @@
   "displayName": "Robot Framework Test Runner",
   "description": "Run Robot Framework tests with configurable options and manage results service",
   "version": "1.0.0",
-  "publisher": "Haitham-Al-Mughrabi",
+  "publisher": "Haitham-m-almughrabi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/haitham-al-mughrabi/rf-test-runner"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },

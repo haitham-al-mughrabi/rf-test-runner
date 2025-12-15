@@ -134,73 +134,87 @@ export class ResultsServiceManager {
     }
 
     stop(): boolean {
-        if (!this._isRunning || !this.process) {
-            // Check if the process might have already terminated
-            if (this.process && this.process.exitCode !== null) {
-                // Process has already exited, just update our state
-                this._isRunning = false;
-                this.outputChannel.appendLine('Results service was already stopped');
-                return true;
-            }
-            vscode.window.showWarningMessage('Results service is not running');
-            return false;
-        }
-
-        try {
-            // Kill the process and any children (only if process is still alive)
-            if (this.process.pid) {
-                try {
-                    process.kill(-this.process.pid);
-                } catch (killError: any) {
-                    if (killError.code === 'ESRCH') {
-                        // Process group doesn't exist, it may have already terminated
-                        this.outputChannel.appendLine('Results service was already stopped');
-                    } else {
-                        throw killError; // Re-throw if it's a different error
-                    }
-                }
-            } else {
-                try {
-                    this.process.kill('SIGTERM');
-                } catch (killError: any) {
-                    if (killError.code === 'ESRCH') {
-                        // Process doesn't exist, it may have already terminated
-                        this.outputChannel.appendLine('Results service was already stopped');
-                    } else {
-                        throw killError; // Re-throw if it's a different error
-                    }
-                }
-            }
-
+        if (!this._isRunning && this.process && this.process.exitCode !== null) {
+            // Process has already exited, just update our state
             this._isRunning = false;
-            this.outputChannel.appendLine('Results service stopped');
-            vscode.window.showInformationMessage('Results service stopped');
+            this.outputChannel.appendLine('Results service was already stopped');
             return true;
-        } catch (error) {
-            // If the primary kill method fails, try alternative methods
+        }
+
+        let success = false;
+
+        // First, try to kill the main script process
+        if (this.process) {
             try {
-                // Try finding and killing by port instead
-                cp.execSync(`lsof -i :${this._port} -t | xargs kill -9 2>/dev/null || true`, {
-                    stdio: 'ignore',
-                    timeout: 2000
-                });
-                this._isRunning = false;
-                this.outputChannel.appendLine('Results service stopped');
-                vscode.window.showInformationMessage('Results service stopped');
-                return true;
-            } catch {
-                const message = error instanceof Error ? error.message : 'Unknown error';
-                if (error instanceof Error && (error as any).code === 'ESRCH') {
-                    // Process already gone, but that's OK
-                    this._isRunning = false;
-                    this.outputChannel.appendLine('Results service was already stopped');
-                    return true;
-                } else {
-                    vscode.window.showErrorMessage(`Failed to stop results service: ${message}`);
-                    return false;
+                if (this.process.pid) {
+                    // Try to kill the process group
+                    try {
+                        process.kill(-this.process.pid, 'SIGKILL');
+                        this.outputChannel.appendLine(`Killed main process group with PID ${-this.process.pid}`);
+                    } catch (killError: any) {
+                        if (killError.code !== 'ESRCH') {
+                            // If ESRCH (no such process) it's fine, otherwise re-throw
+                            this.outputChannel.appendLine(`Error killing process group: ${killError.message}`);
+                        }
+                    }
                 }
+                success = true;
+            } catch (error) {
+                this.outputChannel.appendLine(`Error killing main process: ${error}`);
             }
         }
+
+        // Also kill any Python processes serving on this port
+        try {
+            const lsofResult = cp.execSync(`lsof -i :${this._port} -t 2>/dev/null || true`, { encoding: 'utf-8' });
+            if (lsofResult.trim()) {
+                const pids = lsofResult.trim().split('\n').filter(pid => pid.length > 0);
+                for (const pid of pids) {
+                    if (pid) {
+                        try {
+                            cp.execSync(`kill -9 ${pid}`, { stdio: 'ignore' });
+                            this.outputChannel.appendLine(`Force killed process ${pid} using port ${this._port}`);
+                        } catch (killError) {
+                            this.outputChannel.appendLine(`Could not kill process ${pid}: ${killError}`);
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            this.outputChannel.appendLine(`Error finding processes on port ${this._port}: ${error}`);
+        }
+
+        // Additional check: kill any python processes that might be serving this port
+        // by looking for the http.server command specifically
+        try {
+            const pythonPids = cp.execSync(
+                `ps aux | grep 'python.*http.server' | grep ':${this._port}' | grep -v grep | awk '{print $2}' 2>/dev/null || true`,
+                { encoding: 'utf-8' }
+            );
+
+            if (pythonPids.trim()) {
+                const pids = pythonPids.trim().split('\n').filter(pid => pid.length > 0);
+                for (const pid of pids) {
+                    if (pid) {
+                        try {
+                            cp.execSync(`kill -9 ${pid}`, { stdio: 'ignore' });
+                            this.outputChannel.appendLine(`Force killed Python server process ${pid}`);
+                        } catch (killError) {
+                            this.outputChannel.appendLine(`Could not kill Python process ${pid}: ${killError}`);
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            this.outputChannel.appendLine(`Error finding Python server processes: ${error}`);
+        }
+
+        // Wait a bit to allow processes to terminate
+        this._isRunning = false;
+        this.outputChannel.appendLine('Results service stopped');
+        vscode.window.showInformationMessage('Results service stopped');
+
+        return true;
     }
 
     dispose() {

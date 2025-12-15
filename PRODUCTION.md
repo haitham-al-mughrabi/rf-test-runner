@@ -1,5 +1,7 @@
  # Robot Framework Test Runner - Production Deployment
 
+Repository: https://github.com/rf-automation/rf-test-runner
+
 ## Overview
 This extension allows running Robot Framework tests with configurable options and managing results service. This document provides information about the production deployment.
 
